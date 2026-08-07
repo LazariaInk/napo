@@ -19,6 +19,8 @@ import com.lazar.napo.repository.ChatConversationRepository;
 import com.lazar.napo.repository.ChatMessageRepository;
 import com.lazar.napo.repository.UserAccountRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class ChatService {
 
+    private static final Logger log = LoggerFactory.getLogger(ChatService.class);
     private static final String DEFAULT_TIMEZONE = "Europe/Bucharest";
 
     private final ChatClient.Builder chatClientBuilder;
@@ -41,14 +44,18 @@ public class ChatService {
 
     @Transactional
     public ChatMessageResponse handleMessage(String userEmail, ChatMessageRequest request) {
+        long startedAt = System.nanoTime();
         ChatConversation conversation = getOrCreateConversation(userEmail, request.conversationId());
         saveMessage(conversation, ChatMessageSender.USER, request.message());
+        long persistenceReadyAt = System.nanoTime();
 
         AiReminderExtraction extraction = extractReminderIntent(conversation, request.message());
+        long aiReadyAt = System.nanoTime();
 
         if (!"CREATE_REMINDER".equalsIgnoreCase(extraction.action())) {
             String assistantMessage = fallbackAssistantMessage(extraction);
             saveMessage(conversation, ChatMessageSender.ASSISTANT, assistantMessage);
+            logChatTiming(userEmail, conversation.getId(), extraction.action(), startedAt, persistenceReadyAt, aiReadyAt);
             return new ChatMessageResponse(
                     conversation.getId(),
                     ChatResponseType.CLARIFICATION_NEEDED,
@@ -58,12 +65,22 @@ public class ChatService {
         }
 
         ReminderResponse reminder = createReminderFromExtraction(userEmail, extraction);
+        long reminderReadyAt = System.nanoTime();
         conversation.setStatus(ChatConversationStatus.COMPLETED);
 
         String assistantMessage = extraction.assistantMessage() == null || extraction.assistantMessage().isBlank()
                 ? "Am creat reminderul."
                 : extraction.assistantMessage();
         saveMessage(conversation, ChatMessageSender.ASSISTANT, assistantMessage);
+        logChatTiming(
+                userEmail,
+                conversation.getId(),
+                extraction.action(),
+                startedAt,
+                persistenceReadyAt,
+                aiReadyAt,
+                reminderReadyAt
+        );
 
         return new ChatMessageResponse(
                 conversation.getId(),
@@ -92,10 +109,20 @@ public class ChatService {
 
     private AiReminderExtraction extractReminderIntent(ChatConversation conversation, String userMessage) {
         try {
+            long promptStartedAt = System.nanoTime();
+            String userPrompt = buildUserPrompt(conversation.getId(), userMessage);
+            long promptReadyAt = System.nanoTime();
+            log.info(
+                    "NAPO chat prompt built | conversationId={} | promptChars={} | durationMs={}",
+                    conversation.getId(),
+                    userPrompt.length(),
+                    elapsedMs(promptStartedAt, promptReadyAt)
+            );
+
             return chatClientBuilder.build()
                     .prompt()
                     .system(systemPrompt())
-                    .user(buildUserPrompt(conversation.getId(), userMessage))
+                    .user(userPrompt)
                     .call()
                     .entity(AiReminderExtraction.class);
         } catch (Exception exception) {
@@ -220,5 +247,49 @@ public class ChatService {
                 - For birthdays, recurrenceType should be YEARLY if the user wants yearly recurrence or clearly says it is a birthday reminder.
                 - For MVP, choose LOG unless the user explicitly asks for IN_APP.
                 """;
+    }
+
+    private void logChatTiming(
+            String userEmail,
+            Long conversationId,
+            String aiAction,
+            long startedAt,
+            long persistenceReadyAt,
+            long aiReadyAt
+    ) {
+        log.info(
+                "NAPO chat timing | user={} | conversationId={} | action={} | persistenceMs={} | aiMs={} | totalMs={}",
+                userEmail,
+                conversationId,
+                aiAction,
+                elapsedMs(startedAt, persistenceReadyAt),
+                elapsedMs(persistenceReadyAt, aiReadyAt),
+                elapsedMs(startedAt, aiReadyAt)
+        );
+    }
+
+    private void logChatTiming(
+            String userEmail,
+            Long conversationId,
+            String aiAction,
+            long startedAt,
+            long persistenceReadyAt,
+            long aiReadyAt,
+            long reminderReadyAt
+    ) {
+        log.info(
+                "NAPO chat timing | user={} | conversationId={} | action={} | persistenceMs={} | aiMs={} | reminderCreateMs={} | totalMs={}",
+                userEmail,
+                conversationId,
+                aiAction,
+                elapsedMs(startedAt, persistenceReadyAt),
+                elapsedMs(persistenceReadyAt, aiReadyAt),
+                elapsedMs(aiReadyAt, reminderReadyAt),
+                elapsedMs(startedAt, reminderReadyAt)
+        );
+    }
+
+    private long elapsedMs(long start, long end) {
+        return (end - start) / 1_000_000;
     }
 }
