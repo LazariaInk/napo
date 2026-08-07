@@ -48,6 +48,14 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.UNAUTHORIZED, exception.getMessage(), request, null);
     }
 
+    @ExceptionHandler(AiIntegrationException.class)
+    public ResponseEntity<ErrorResponse> handleAiIntegration(
+            AiIntegrationException exception,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(HttpStatus.BAD_GATEWAY, exception.getMessage(), request, null);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(
             MethodArgumentNotValidException exception,
