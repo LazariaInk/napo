@@ -126,6 +126,13 @@ public class ChatService {
                     .call()
                     .entity(AiReminderExtraction.class);
         } catch (Exception exception) {
+            log.warn(
+                    "NAPO chat AI call failed | conversationId={} | errorType={} | errorMessage={}",
+                    conversation.getId(),
+                    exception.getClass().getName(),
+                    exception.getMessage(),
+                    exception
+            );
             throw new AiIntegrationException("Could not process the message with AI", exception);
         }
     }
