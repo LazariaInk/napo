@@ -8,4 +8,11 @@ import java.util.List;
 public interface ReminderNotificationAttemptRepository extends JpaRepository<ReminderNotificationAttempt, Long> {
 
     List<ReminderNotificationAttempt> findByReminderIdOrderByAttemptedAtDesc(Long reminderId);
+
+    List<ReminderNotificationAttempt> findByReminderUserEmailIgnoreCaseOrderByAttemptedAtDesc(String email);
+
+    List<ReminderNotificationAttempt> findByReminderIdAndReminderUserEmailIgnoreCaseOrderByAttemptedAtDesc(
+            Long reminderId,
+            String email
+    );
 }
