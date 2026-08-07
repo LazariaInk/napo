@@ -26,6 +26,7 @@ public class ReminderProcessingService {
 
     private final ReminderRepository reminderRepository;
     private final ReminderNotificationAttemptRepository attemptRepository;
+    private final ReminderRecurrenceService recurrenceService;
 
     @Transactional
     public ProcessDueRemindersResponse processDueReminders(OffsetDateTime processUntil) {
@@ -40,13 +41,24 @@ public class ReminderProcessingService {
 
         for (Reminder reminder : dueReminders) {
             ReminderNotificationAttempt attempt = notifyThroughMockChannel(reminder);
-            reminder.setStatus(ReminderStatus.COMPLETED);
+            OffsetDateTime originalRemindAt = reminder.getRemindAt();
+            OffsetDateTime nextRemindAt = null;
+
+            if (recurrenceService.isRecurring(reminder)) {
+                nextRemindAt = recurrenceService.calculateNextReminderTime(reminder, effectiveProcessUntil);
+                reminder.setRemindAt(nextRemindAt);
+                reminder.setStatus(ReminderStatus.PENDING);
+            } else {
+                reminder.setStatus(ReminderStatus.COMPLETED);
+            }
+
             reminderRepository.save(reminder);
 
             processedReminders.add(new ProcessedReminderResponse(
                     reminder.getId(),
                     reminder.getTitle(),
-                    reminder.getRemindAt(),
+                    originalRemindAt,
+                    nextRemindAt,
                     reminder.getStatus(),
                     attempt.getChannel(),
                     attempt.getId()

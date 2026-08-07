@@ -9,6 +9,7 @@ public record ProcessedReminderResponse(
         Long reminderId,
         String title,
         OffsetDateTime remindAt,
+        OffsetDateTime nextRemindAt,
         ReminderStatus status,
         NotificationChannel channel,
         Long attemptId
