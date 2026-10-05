@@ -1,13 +1,15 @@
 package com.lazar.napo;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootTest
+import static org.assertj.core.api.Assertions.assertThat;
+
 class NapoApplicationTests {
 
 	@Test
-	void contextLoads() {
+	void applicationClassIsSpringBootApplication() {
+		assertThat(NapoApplication.class).hasAnnotation(SpringBootApplication.class);
 	}
 
 }
