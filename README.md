@@ -35,7 +35,7 @@ Connect with psql:
 List users:
 
 ```sql
-SELECT id, email, display_name, role, created_at, updated_at
+SELECT id, email, display_name, role, auth_provider, email_verified, created_at, updated_at
 FROM user_accounts
 ORDER BY id;
 ```
@@ -47,7 +47,7 @@ Set the OpenAI API key in the environment, then run the local profile:
 ```powershell
 cd C:\Workspace\napo
 $env:JAVA_HOME="C:\Program Files\Java\jdk-21"
-$env:OPENAI_API_KEY="sk-your-valid-key"
+$env:OPENAI_API_KEY="your-openai-api-key"
 .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
 ```
 
@@ -55,6 +55,31 @@ Backend URL:
 
 ```text
 http://localhost:8080
+```
+
+Mobile Google login configuration:
+
+```powershell
+$env:NAPO_JWT_SECRET="replace-with-a-long-random-secret-at-least-32-chars"
+$env:NAPO_GOOGLE_ALLOWED_CLIENT_IDS="android-client-id.apps.googleusercontent.com,ios-client-id.apps.googleusercontent.com"
+```
+
+The mobile app signs in with Google natively, receives a Google `idToken`, then calls:
+
+```http
+POST /api/auth/google
+```
+
+```json
+{
+  "idToken": "google-id-token-from-react-native"
+}
+```
+
+The backend verifies the Google token and returns a NAPO `accessToken`. Mobile requests should use:
+
+```text
+Authorization: Bearer <accessToken>
 ```
 
 Run tests:
@@ -65,6 +90,20 @@ $env:OPENAI_API_KEY="test-key"
 ```
 
 The unit tests do not require PostgreSQL to be running.
+
+Run the Docker integration test:
+
+```powershell
+docker compose up -d
+$env:OPENAI_API_KEY="test-key"
+$env:NAPO_RUN_INTEGRATION_TESTS="true"
+.\mvnw.cmd -Dtest=NapoDockerIntegrationTest test
+```
+
+The integration test uses the real local PostgreSQL container on `localhost:55432`.
+It creates a temporary user with an email like `it-xxxxxxxx@napo.local`, creates one
+reminder through the REST API, manually processes due reminders, then verifies the
+stored notification attempt.
 
 ## Temporary React Test UI
 
@@ -100,12 +139,13 @@ POST /api/auth/register
 }
 ```
 
-Use Basic Auth for protected endpoints:
+Use the returned JWT for protected endpoints:
 
 ```text
-username: test@napo.local
-password: password123
+Authorization: Bearer <accessToken>
 ```
+
+Basic Auth still works for local Postman testing with email/password users: username `test@napo.local`, password `password123`.
 
 Notification history:
 

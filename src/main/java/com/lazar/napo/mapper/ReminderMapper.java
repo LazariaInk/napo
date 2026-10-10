@@ -67,6 +67,6 @@ public class ReminderMapper {
     }
 
     private NotificationChannel defaultChannel(NotificationChannel channel) {
-        return channel == null ? NotificationChannel.LOG : channel;
+        return channel == null ? NotificationChannel.LOCAL_ALARM : channel;
     }
 }

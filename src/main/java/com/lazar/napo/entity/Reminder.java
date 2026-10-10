@@ -83,7 +83,7 @@ public class Reminder {
             recurrenceType = RecurrenceType.NONE;
         }
         if (preferredChannel == null) {
-            preferredChannel = NotificationChannel.LOG;
+            preferredChannel = NotificationChannel.LOCAL_ALARM;
         }
         if (timezone == null || timezone.isBlank()) {
             timezone = "Europe/Bucharest";

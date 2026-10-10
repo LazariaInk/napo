@@ -1,6 +1,7 @@
 package com.lazar.napo.controller;
 
 import com.lazar.napo.dto.AuthResponse;
+import com.lazar.napo.dto.GoogleLoginRequest;
 import com.lazar.napo.dto.LoginRequest;
 import com.lazar.napo.dto.RegisterRequest;
 import com.lazar.napo.service.AuthService;
@@ -34,6 +35,11 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
+        return ResponseEntity.ok(authService.loginWithGoogle(request));
     }
 
     @GetMapping("/me")

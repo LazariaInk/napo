@@ -24,10 +24,12 @@ public class ReminderService {
     private final ReminderRepository reminderRepository;
     private final UserAccountRepository userAccountRepository;
     private final ReminderMapper reminderMapper;
+    private final UsageLimitService usageLimitService;
 
     @Transactional
     public ReminderResponse create(String userEmail, CreateReminderRequest request) {
         UserAccount user = getUser(userEmail);
+        usageLimitService.ensureCanCreateReminder(user, request.recurrenceType());
         Reminder reminder = reminderMapper.toEntity(request);
         reminder.setUser(user);
         return reminderMapper.toResponse(reminderRepository.save(reminder));

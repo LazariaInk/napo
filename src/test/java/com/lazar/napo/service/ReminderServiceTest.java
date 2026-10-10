@@ -32,6 +32,9 @@ class ReminderServiceTest {
     @Mock
     private UserAccountRepository userAccountRepository;
 
+    @Mock
+    private UsageLimitService usageLimitService;
+
     private ReminderService reminderService;
 
     @BeforeEach
@@ -39,7 +42,8 @@ class ReminderServiceTest {
         reminderService = new ReminderService(
                 reminderRepository,
                 userAccountRepository,
-                new ReminderMapper()
+                new ReminderMapper(),
+                usageLimitService
         );
     }
 

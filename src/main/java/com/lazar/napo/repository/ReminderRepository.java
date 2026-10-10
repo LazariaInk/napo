@@ -1,5 +1,6 @@
 package com.lazar.napo.repository;
 
+import com.lazar.napo.entity.RecurrenceType;
 import com.lazar.napo.entity.Reminder;
 import com.lazar.napo.entity.ReminderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,4 +21,12 @@ public interface ReminderRepository extends JpaRepository<Reminder, Long> {
     List<Reminder> findByUserEmailIgnoreCaseOrderByRemindAtAsc(String email);
 
     Optional<Reminder> findByIdAndUserEmailIgnoreCase(Long id, String email);
+
+    long countByUserEmailIgnoreCaseAndStatus(String email, ReminderStatus status);
+
+    long countByUserEmailIgnoreCaseAndStatusAndRecurrenceTypeNot(
+            String email,
+            ReminderStatus status,
+            RecurrenceType recurrenceType
+    );
 }

@@ -37,8 +37,21 @@ public class UserAccount {
     private String displayName;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private UserAuthProvider authProvider;
+
+    @Column(length = 120)
+    private String providerUserId;
+
+    private Boolean emailVerified;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private UserRole role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private UserPlan plan;
 
     @Column(nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -54,6 +67,14 @@ public class UserAccount {
 
         if (role == null) {
             role = UserRole.USER;
+        }
+
+        if (authProvider == null) {
+            authProvider = UserAuthProvider.LOCAL;
+        }
+
+        if (plan == null) {
+            plan = UserPlan.FREE;
         }
     }
 

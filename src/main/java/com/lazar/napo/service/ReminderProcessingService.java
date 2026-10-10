@@ -3,6 +3,7 @@ package com.lazar.napo.service;
 import com.lazar.napo.dto.ProcessDueRemindersResponse;
 import com.lazar.napo.dto.ProcessedReminderResponse;
 import com.lazar.napo.entity.NotificationAttemptStatus;
+import com.lazar.napo.entity.NotificationChannel;
 import com.lazar.napo.entity.Reminder;
 import com.lazar.napo.entity.ReminderNotificationAttempt;
 import com.lazar.napo.entity.ReminderStatus;
@@ -40,7 +41,7 @@ public class ReminderProcessingService {
         List<ProcessedReminderResponse> processedReminders = new ArrayList<>();
 
         for (Reminder reminder : dueReminders) {
-            ReminderNotificationAttempt attempt = notifyThroughMockChannel(reminder);
+            ReminderNotificationAttempt attempt = processNotificationChannel(reminder);
             OffsetDateTime originalRemindAt = reminder.getRemindAt();
             OffsetDateTime nextRemindAt = null;
 
@@ -70,6 +71,35 @@ public class ReminderProcessingService {
                 processedReminders.size(),
                 processedReminders
         );
+    }
+
+    private ReminderNotificationAttempt processNotificationChannel(Reminder reminder) {
+        if (reminder.getPreferredChannel() == NotificationChannel.LOCAL_ALARM) {
+            return markLocalAlarmAsDeviceHandled(reminder);
+        }
+
+        return notifyThroughMockChannel(reminder);
+    }
+
+    private ReminderNotificationAttempt markLocalAlarmAsDeviceHandled(Reminder reminder) {
+        String recipient = reminder.getUser() == null ? "unknown-user" : reminder.getUser().getEmail();
+
+        log.info(
+                "NAPO local alarm due | reminderId={} | user={} | title={} | handledBy=device",
+                reminder.getId(),
+                recipient,
+                reminder.getTitle()
+        );
+
+        ReminderNotificationAttempt attempt = new ReminderNotificationAttempt();
+        attempt.setReminder(reminder);
+        attempt.setChannel(NotificationChannel.LOCAL_ALARM);
+        attempt.setStatus(NotificationAttemptStatus.SKIPPED);
+        attempt.setAttemptedAt(OffsetDateTime.now());
+        attempt.setProviderMessageId("device-local-alarm-" + reminder.getId());
+        attempt.setErrorMessage("Local alarms are scheduled and delivered by the mobile device.");
+
+        return attemptRepository.save(attempt);
     }
 
     private ReminderNotificationAttempt notifyThroughMockChannel(Reminder reminder) {

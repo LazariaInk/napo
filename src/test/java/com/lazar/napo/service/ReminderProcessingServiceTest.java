@@ -74,6 +74,38 @@ class ReminderProcessingServiceTest {
     }
 
     @Test
+    void marksLocalAlarmAsHandledByDevice() {
+        OffsetDateTime processUntil = OffsetDateTime.parse("2026-08-23T10:01:00+03:00");
+        Reminder reminder = reminder(3L, RecurrenceType.NONE, "2026-08-23T10:00:00+03:00");
+        reminder.setPreferredChannel(NotificationChannel.LOCAL_ALARM);
+
+        when(reminderRepository.findByStatusAndRemindAtLessThanEqualOrderByRemindAtAsc(
+                ReminderStatus.PENDING,
+                processUntil
+        )).thenReturn(List.of(reminder));
+        when(attemptRepository.save(any(ReminderNotificationAttempt.class))).thenAnswer(invocation -> {
+            ReminderNotificationAttempt attempt = invocation.getArgument(0);
+            attempt.setId(101L);
+            return attempt;
+        });
+        when(reminderRepository.save(any(Reminder.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ProcessDueRemindersResponse response = processingService.processDueReminders(processUntil);
+
+        assertThat(reminder.getStatus()).isEqualTo(ReminderStatus.COMPLETED);
+        assertThat(response.reminders().getFirst().channel()).isEqualTo(NotificationChannel.LOCAL_ALARM);
+        assertThat(response.reminders().getFirst().attemptId()).isEqualTo(101L);
+
+        ArgumentCaptor<ReminderNotificationAttempt> attemptCaptor =
+                ArgumentCaptor.forClass(ReminderNotificationAttempt.class);
+        verify(attemptRepository).save(attemptCaptor.capture());
+        assertThat(attemptCaptor.getValue().getChannel()).isEqualTo(NotificationChannel.LOCAL_ALARM);
+        assertThat(attemptCaptor.getValue().getStatus()).isEqualTo(NotificationAttemptStatus.SKIPPED);
+        assertThat(attemptCaptor.getValue().getProviderMessageId()).isEqualTo("device-local-alarm-3");
+        assertThat(attemptCaptor.getValue().getErrorMessage())
+                .isEqualTo("Local alarms are scheduled and delivered by the mobile device.");
+    }
+    @Test
     void reschedulesRecurringReminderAndKeepsItPending() {
         OffsetDateTime processUntil = OffsetDateTime.parse("2026-08-23T10:01:00+03:00");
         Reminder reminder = reminder(2L, RecurrenceType.YEARLY, "2026-08-23T10:00:00+03:00");

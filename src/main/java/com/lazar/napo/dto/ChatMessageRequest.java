@@ -7,7 +7,7 @@ public record ChatMessageRequest(
         Long conversationId,
 
         @NotBlank(message = "Message is required")
-        @Size(max = 4000, message = "Message must have at most 4000 characters")
+        @Size(max = 700, message = "Message must have at most 700 characters")
         String message
 ) {
 }
