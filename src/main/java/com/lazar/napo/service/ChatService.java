@@ -37,6 +37,7 @@ public class ChatService {
 
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
     private static final String DEFAULT_TIMEZONE = "Europe/Bucharest";
+    private static final int MAX_MESSAGES_PER_CONVERSATION = 20;
     private static final String OUT_OF_SCOPE_MESSAGE = "Pot ajuta doar cu crearea de remindere. Spune-mi ce vrei sa-ti amintesc si cand.";
     private static final String TOO_MANY_REMINDERS_MESSAGE = "Momentan pot crea un singur reminder pe mesaj. Trimite primul reminder, apoi continuam cu urmatorul.";
     private static final Pattern DATE_OR_TIME_PATTERN = Pattern.compile(
@@ -290,6 +291,17 @@ public class ChatService {
         message.setSender(sender);
         message.setContent(content);
         messageRepository.save(message);
+        trimConversationHistory(conversation.getId());
+    }
+
+    private void trimConversationHistory(Long conversationId) {
+        List<ChatMessage> messages = messageRepository
+                .findByConversationIdOrderByCreatedAtAscIdAsc(conversationId);
+        int excessMessages = messages.size() - MAX_MESSAGES_PER_CONVERSATION;
+
+        if (excessMessages > 0) {
+            messageRepository.deleteAllInBatch(messages.subList(0, excessMessages));
+        }
     }
 
     private String fallbackAssistantMessage(AiReminderExtraction extraction) {
