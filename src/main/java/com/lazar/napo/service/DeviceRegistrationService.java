@@ -24,16 +24,17 @@ public class DeviceRegistrationService {
     @Transactional
     public DeviceResponse register(String userEmail, RegisterDeviceRequest request) {
         UserDevice device = userDeviceRepository
-                .findByUserEmailIgnoreCaseAndPlatformAndPushToken(
-                        userEmail, request.platform(), request.pushToken())
+                .findByUserEmailIgnoreCaseAndPlatformAndInstallationId(
+                        userEmail, request.platform(), request.installationId())
                 .orElseGet(() -> {
                     UserDevice newDevice = new UserDevice();
                     newDevice.setUser(getUser(userEmail));
                     newDevice.setPlatform(request.platform());
-                    newDevice.setPushToken(request.pushToken());
                     return newDevice;
                 });
 
+        device.setInstallationId(request.installationId());
+        device.setPushToken(request.pushToken());
         device.setAppVersion(request.appVersion());
         device.setDeviceName(request.deviceName());
         device.setEnabled(true);
@@ -66,6 +67,7 @@ public class DeviceRegistrationService {
         return new DeviceResponse(
                 device.getId(),
                 device.getPlatform(),
+                device.getInstallationId(),
                 device.getAppVersion(),
                 device.getDeviceName(),
                 device.isEnabled(),

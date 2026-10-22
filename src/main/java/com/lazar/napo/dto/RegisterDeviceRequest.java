@@ -9,6 +9,10 @@ public record RegisterDeviceRequest(
         @NotNull(message = "Platform is required")
         DevicePlatform platform,
 
+        @NotBlank(message = "Installation id is required")
+        @Size(max = 120, message = "Installation id must have at most 120 characters")
+        String installationId,
+
         @NotBlank(message = "Push token is required")
         @Size(max = 4096, message = "Push token must have at most 4096 characters")
         String pushToken,

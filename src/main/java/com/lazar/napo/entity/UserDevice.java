@@ -42,6 +42,9 @@ public class UserDevice {
     @Column(nullable = false, length = 20)
     private DevicePlatform platform;
 
+    @Column(name = "installation_id", length = 120)
+    private String installationId;
+
     @Column(name = "push_token", nullable = false, length = 4096)
     private String pushToken;
 

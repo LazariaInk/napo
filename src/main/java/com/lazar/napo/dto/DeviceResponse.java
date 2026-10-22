@@ -7,6 +7,7 @@ import java.time.OffsetDateTime;
 public record DeviceResponse(
         Long id,
         DevicePlatform platform,
+        String installationId,
         String appVersion,
         String deviceName,
         boolean enabled,

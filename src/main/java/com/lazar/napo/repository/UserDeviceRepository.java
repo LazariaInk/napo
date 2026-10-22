@@ -15,6 +15,12 @@ public interface UserDeviceRepository extends JpaRepository<UserDevice, Long> {
             String pushToken
     );
 
+    Optional<UserDevice> findByUserEmailIgnoreCaseAndPlatformAndInstallationId(
+            String email,
+            DevicePlatform platform,
+            String installationId
+    );
+
     List<UserDevice> findByUserEmailIgnoreCaseOrderByLastSeenAtDesc(String email);
 
     Optional<UserDevice> findByIdAndUserEmailIgnoreCase(Long id, String email);
