@@ -26,12 +26,7 @@ public class DeviceRegistrationService {
         UserDevice device = userDeviceRepository
                 .findByUserEmailIgnoreCaseAndPlatformAndInstallationId(
                         userEmail, request.platform(), request.installationId())
-                .orElseGet(() -> {
-                    UserDevice newDevice = new UserDevice();
-                    newDevice.setUser(getUser(userEmail));
-                    newDevice.setPlatform(request.platform());
-                    return newDevice;
-                });
+                .orElseGet(() -> registerNewInstallation(userEmail, request));
 
         device.setInstallationId(request.installationId());
         device.setPushToken(request.pushToken());
@@ -40,6 +35,20 @@ public class DeviceRegistrationService {
         device.setEnabled(true);
         device.setLastSeenAt(OffsetDateTime.now());
         return toResponse(userDeviceRepository.save(device));
+    }
+
+    private UserDevice registerNewInstallation(String userEmail, RegisterDeviceRequest request) {
+        UserAccount user = getUser(userEmail);
+        userDeviceRepository.findByUserEmailIgnoreCaseOrderByLastSeenAtDesc(userEmail)
+                .stream()
+                .filter(existing -> existing.getPlatform() == request.platform())
+                .filter(existing -> !request.installationId().equals(existing.getInstallationId()))
+                .forEach(userDeviceRepository::delete);
+
+        UserDevice newDevice = new UserDevice();
+        newDevice.setUser(user);
+        newDevice.setPlatform(request.platform());
+        return newDevice;
     }
 
     @Transactional(readOnly = true)
